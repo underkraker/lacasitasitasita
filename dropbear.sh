@@ -194,6 +194,11 @@ done
 sed -i "s/VAR//g" /etc/default/dropbear
 }
 fun_eth
+# Liberar Puerto 80 (Apache/Nginx)
+systemctl stop apache2 &>/dev/null
+systemctl disable apache2 &>/dev/null
+systemctl stop nginx &>/dev/null
+systemctl disable nginx &>/dev/null
 pkill -9 dropbear > /dev/null 2>&1
 systemctl daemon-reload > /dev/null 2>&1
 service ssh restart > /dev/null 2>&1 || systemctl restart ssh > /dev/null 2>&1

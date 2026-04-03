@@ -72,6 +72,7 @@ for p_kill in $p_off; do
 done
 systemctl stop stunnel4 > /dev/null 2>&1 || service stunnel4 stop > /dev/null 2>&1
 pkill -9 stunnel4 > /dev/null 2>&1
+fuser -k -n tcp $p_off > /dev/null 2>&1
 pkill -f python.py > /dev/null 2>&1
 msg -bar
 echo -e "\033[1;33m $(fun_trans "Detenido Con Exito!")"
