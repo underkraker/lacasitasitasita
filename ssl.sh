@@ -65,9 +65,13 @@ sleep 1s
 }
 ssl_stunel () {
 [[ $(mportas|grep stunnel4|head -1) ]] && {
-echo -e "\033[1;33m $(fun_trans "Parando Stunnel")"
-msg -bar
+# Obtener puerto de SSL para cerrar en firewall
+local p_off=$(cat /etc/stunnel/stunnel.conf | grep "accept =" | awk '{print $NF}')
+for p_kill in $p_off; do
+  ufw delete allow $p_kill > /dev/null 2>&1
+done
 systemctl stop stunnel4 > /dev/null 2>&1 || service stunnel4 stop > /dev/null 2>&1
+pkill -9 stunnel4 > /dev/null 2>&1
 pkill -f python.py > /dev/null 2>&1
 msg -bar
 echo -e "\033[1;33m $(fun_trans "Detenido Con Exito!")"
@@ -113,7 +117,10 @@ cat stunnel.crt stunnel.key > stunnel.pem
 mv stunnel.pem /etc/stunnel/
 ######-------
 sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4
+pkill -9 stunnel4 > /dev/null 2>&1
+systemctl daemon-reload > /dev/null 2>&1
 systemctl restart stunnel4 > /dev/null 2>&1 || service stunnel4 restart > /dev/null 2>&1
+ufw allow ${SSLPORT} > /dev/null 2>&1
 msg -bar
 echo -e "\033[1;33m $(fun_trans  "INSTALADO CON EXITO")"
 msg -bar
@@ -155,7 +162,10 @@ fun_bar "apt-get install stunnel4 -y"
 echo -e "client = no\n[SSL+]\ncert = /etc/stunnel/stunnel.pem\naccept = ${SSLPORT}\nconnect = 127.0.0.1:${DPORT}" >> /etc/stunnel/stunnel.conf
 ######-------
 sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4
-service stunnel4 restart > /dev/null 2>&1
+pkill -9 stunnel4 > /dev/null 2>&1
+systemctl daemon-reload > /dev/null 2>&1
+service stunnel4 restart > /dev/null 2>&1 || systemctl restart stunnel4 > /dev/null 2>&1
+ufw allow ${SSLPORT} > /dev/null 2>&1
 msg -bar
 echo -e "\033[1;33m $(fun_trans  "INSTALADO CON EXITO")"
 msg -bar

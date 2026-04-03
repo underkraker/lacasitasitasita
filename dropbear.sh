@@ -72,7 +72,12 @@ fun_dropbear () {
  [[ -e /etc/default/dropbear ]] && {
  echo -e "\033[1;32m $(fun_trans ${id} "REMOVIENDO DROPBEAR")"
  msg -bar
- service dropbear stop & >/dev/null 2>&1
+ # Cerrar puertos en firewall antes de borrar
+ for p_off in $(cat /etc/default/dropbear | grep "DROPBEAR_EXTRA_ARGS" | grep -oE "[0-9]+"); do
+   ufw delete allow $p_off > /dev/null 2>&1
+ done
+ service dropbear stop > /dev/null 2>&1 || systemctl stop dropbear > /dev/null 2>&1
+ pkill -9 dropbear > /dev/null 2>&1
  fun_bar "apt-get remove dropbear -y"
  msg -bar
  echo -e "\033[1;32m $(fun_trans "Dropbear Removido")"
@@ -189,8 +194,13 @@ done
 sed -i "s/VAR//g" /etc/default/dropbear
 }
 fun_eth
+pkill -9 dropbear > /dev/null 2>&1
+systemctl daemon-reload > /dev/null 2>&1
 service ssh restart > /dev/null 2>&1 || systemctl restart ssh > /dev/null 2>&1
 service dropbear restart > /dev/null 2>&1 || systemctl restart dropbear > /dev/null 2>&1
+for p_on in $PORT; do
+  ufw allow $p_on > /dev/null 2>&1
+done
 echo -e "${cor[3]} $(fun_trans "Su dropbear ha sido configurado con EXITO")"
 msg -bar
 #UFW
