@@ -71,7 +71,10 @@ for p_kill in $p_off; do
   ufw delete allow $p_kill > /dev/null 2>&1
 done
 systemctl stop stunnel4 > /dev/null 2>&1 || service stunnel4 stop > /dev/null 2>&1
+systemctl disable stunnel4 > /dev/null 2>&1
 pkill -9 stunnel4 > /dev/null 2>&1
+pkill -9 stunnel > /dev/null 2>&1
+killall -9 stunnel4 > /dev/null 2>&1
 fuser -k -n tcp $p_off > /dev/null 2>&1
 pkill -f python.py > /dev/null 2>&1
 msg -bar

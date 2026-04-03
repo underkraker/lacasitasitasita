@@ -649,7 +649,8 @@ selection=$(selection_fun $Numb)
 # Menu Instalaciones
 pid_inst () {
 [[ $1 = "" ]] && echo -e "\033[1;31m[OFF]" && return 0
-if ss -tunlp | grep -qi "$1"; then
+# Detección dual para stunnel/stunnel4 y case-insensitive
+if ss -tunlp | grep -qEi "$1|stunnel"; then
     echo -e "\033[1;32m[ON]"
 else
     echo -e "\033[1;31m[OFF]"
