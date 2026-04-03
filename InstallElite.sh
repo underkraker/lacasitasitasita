@@ -43,11 +43,16 @@ chmod +x "$PROTO_DIR/ssl_elite.sh"
 
 # 3. Crear accesos directos
 echo "Configurando accesos directos ('menu', 'elite')..."
-echo "/etc/VPS-MX/menu" > /usr/bin/menu && chmod +x /usr/bin/menu
-echo "/etc/VPS-MX/menu" > /usr/bin/vps-mx && chmod +x /usr/bin/vps-mx
-echo "/etc/VPS-MX/menu" > /usr/bin/VPS-MX && chmod +x /usr/bin/VPS-MX
-echo "/etc/VPS-MX/menu_elite.sh --loop" > /usr/bin/elite && chmod +x /usr/bin/elite
-echo "/etc/VPS-MX/menu_elite.sh --loop" > /usr/bin/ELITE && chmod +x /usr/bin/ELITE
+ln -sf /etc/VPS-MX/menu /usr/bin/menu
+ln -sf /etc/VPS-MX/menu /usr/bin/vps-mx
+ln -sf /etc/VPS-MX/menu /usr/bin/VPS-MX
+ln -sf /etc/VPS-MX/menu_elite.sh /usr/bin/elite
+ln -sf /etc/VPS-MX/menu_elite.sh /usr/bin/ELITE
+
+# Verificar que el menú exista
+if [ ! -f "/etc/VPS-MX/menu" ]; then
+    echo "ERROR: No se encontró el archivo 'menu' en /etc/VPS-MX/"
+fi
 
 # 4. Aplicar Optimización del Sistema
 echo "Aplicando BBR y Optimización de Red..."
