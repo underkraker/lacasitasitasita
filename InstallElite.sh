@@ -3,6 +3,11 @@
 # Autor: Antigravity AI Expert
 # Versión: 1.0 (Elite Edition)
 
+# 0. Instalar dependencias necesarias
+echo "Verificando dependencias (net-tools, openssl)..."
+apt-get update > /dev/null 2>&1
+apt-get install net-tools openssl -y > /dev/null 2>&1
+
 # 1. Definir directorios
 BASE_DIR="/etc/VPS-MX"
 PROTO_DIR="$BASE_DIR/protocolos"

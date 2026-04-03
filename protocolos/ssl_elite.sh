@@ -4,6 +4,22 @@
 # Versión: 1.0 (Elite Edition)
 
 STUNNEL_CONF="/etc/stunnel/stunnel.conf"
+STUNNEL_DIR="/etc/stunnel"
+
+# Asegurar que stunnel4 esté instalado y el directorio exista
+if [ ! -d "$STUNNEL_DIR" ]; then
+    echo "Instalando Stunnel4..."
+    apt-get update > /dev/null 2>&1
+    apt-get install stunnel4 -y > /dev/null 2>&1
+    mkdir -p "$STUNNEL_DIR"
+fi
+
+# Generar certificado auto-firmado si no existe
+if [ ! -f "$STUNNEL_DIR/stunnel.pem" ]; then
+    echo "Generando certificado certificado para SSL..."
+    openssl genrsa -out "$STUNNEL_DIR/stunnel.pem" 2048 > /dev/null 2>&1
+    openssl req -new -x509 -key "$STUNNEL_DIR/stunnel.pem" -out "$STUNNEL_DIR/stunnel.pem" -days 365 -subj "/C=MX/ST=CDMX/L=CDMX/O=VPS-MX/OU=Elite/CN=VPS-MX" > /dev/null 2>&1
+fi
 
 # Backup de la configuración actual
 if [ -f "$STUNNEL_CONF" ]; then
