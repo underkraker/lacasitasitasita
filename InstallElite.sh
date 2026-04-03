@@ -65,6 +65,11 @@ chmod +x "$PROTO_DIR"/*.py 2>/dev/null
 wget https://github.com/lacasitamx/VPSMX/raw/master/SCRIPT-V8.4g/Fix/HELP -O /usr/bin/HELP &>/dev/null
 chmod 775 /usr/bin/HELP &>/dev/null
 
+# Fix: Archivos de versión y mensajes para el menú original
+echo "8.4g" > /etc/versin_script_new
+echo "8.4g" > /etc/versin_script
+[[ ! -f "$BASE_DIR/message.txt" ]] && echo "ELITE-MOD" > "$BASE_DIR/message.txt"
+
 # 4. Capa de Optimización Elite
 msg "Fase 4: Optimización Avanzada"
 # BBR y TCP tuning
