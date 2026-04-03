@@ -5,13 +5,7 @@ SCPfrm="/etc/ger-frm" && [[ ! -d ${SCPfrm} ]] && exit
 SCPinst="/etc/ger-inst" && [[ ! -d ${SCPinst} ]] && exit
 mportas () {
 unset portas
-if command -v ss > /dev/null 2>&1; then
-    portas_var=$(ss -tunlp | grep LISTEN | sed 's/users:(("\([^"]*\)".*)/ \1/' | awk '{port=$NF; sub(/.*:/, "", port); print $NF, port}' | sort -u)
-elif command -v netstat > /dev/null 2>&1; then
-    portas_var=$(netstat -tunlp | grep LISTEN | awk '{port=$4; sub(/.*:/, "", port); split($7,a,"/"); print a[2], port}' | sort -u)
-else
-    portas_var=$(lsof -V -i tcp -P -n | grep LISTEN | awk '{split($9,a,":"); print $1, a[2]}' | sort -u)
-fi
+portas_var=$(ss -tunlp | grep LISTEN | grep -v 127.0.0.1 | awk '{split($5,a,":"); split($7,b,"\""); print b[2], a[length(a)]}' | sort -u)
 while read -r line; do [[ -z "$line" ]] || portas+="$line\n"; done <<< "$portas_var"
 echo -ne "$portas"
 }
