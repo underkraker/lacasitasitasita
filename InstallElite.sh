@@ -5,8 +5,12 @@
 
 # 0. Instalar dependencias necesarias
 echo "Verificando dependencias (net-tools, openssl)..."
-apt-get update > /dev/null 2>&1
-apt-get install net-tools openssl -y > /dev/null 2>&1
+# Liberar posibles bloqueos de apt
+rm /var/lib/dpkg/lock-frontend > /dev/null 2>&1
+rm /var/lib/apt/lists/lock > /dev/null 2>&1
+
+DEBIAN_FRONTEND=noninteractive apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install net-tools openssl -y
 
 # 1. Definir directorios
 BASE_DIR="/etc/VPS-MX"
