@@ -649,7 +649,8 @@ selection=$(selection_fun $Numb)
 # Menu Instalaciones
 pid_inst () {
 [[ $1 = "" ]] && echo -e "\033[1;31m[OFF]" && return 0
-if ss -tunlp | grep LISTEN | grep -qiE "$1|stunnel"; then
+# Detección multi-capa: pgrep + ss
+if pgrep -x "$1" > /dev/null || pgrep -f "$1" > /dev/null || ss -tunlp | grep LISTEN | grep -qi "$1"; then
     echo -e "\033[1;32m[ON]"
 else
     echo -e "\033[1;31m[OFF]"

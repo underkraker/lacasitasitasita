@@ -58,7 +58,9 @@ echo -e " \033[1;33m[\033[1;31m####################\033[1;33m] - \033[1;32m100%\
 sleep 1s
 }
 ssl_stunel () {
-[[ $(mportas|grep stunnel4|head -1) ]] && {
+[[ $(pgrep -x stunnel4) ]] || [[ $(pgrep -x stunnel) ]] || [[ $(ss -tunlp | grep -qi "stunnel") ]] && {
+echo -e "\033[1;33m $(fun_trans "Parando Stunnel")"
+msg -bar
 # Obtener puerto de SSL para cerrar en firewall
 local p_off=$(cat /etc/stunnel/stunnel.conf | grep "accept =" | awk '{print $NF}')
 for p_kill in $p_off; do
