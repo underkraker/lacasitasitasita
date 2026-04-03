@@ -49,7 +49,10 @@ mkdir -p "$BASE_DIR/B-VPS-MXuser"
 
 # 3. Despliegue de Archivos (Clonando o Copiando locales)
 msg "Fase 3: Despliegue de Archivos"
-# Parche de IP (ifconfig.me -> v4.ident.me para evitar basura HTML)
+# Generar cache de IP para evitar errores de ifconfig.me
+IP_PUBLIC=$(curl -s v4.ident.me || wget -qO- v4.ident.me)
+echo "$IP_PUBLIC" > "$BASE_DIR/MEUIPvps"
+# Parche de IP en los scripts (ifconfig.me -> v4.ident.me)
 sed -i 's/ifconfig.me/v4.ident.me/g' menu 2>/dev/null
 # Copiar archivos originales de la carpeta actual (cloncasita)
 cp menu "$BASE_DIR/menu"
