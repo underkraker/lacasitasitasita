@@ -21,14 +21,24 @@ echo "Instalando Dashboard Elite..."
 cp menu_elite.sh "$BASE_DIR/menu_elite.sh"
 chmod +x "$BASE_DIR/menu_elite.sh"
 
+echo "Instalando Scripts Originales (Menu, Protocolos)..."
+cp menu "$BASE_DIR/menu"
+chmod +x "$BASE_DIR/menu"
+cp -r protocolos/* "$PROTO_DIR/"
+chmod +x "$PROTO_DIR"/*.sh
+chmod +x "$PROTO_DIR"/*.py 2>/dev/null
+
 echo "Instalando Scripts de Optimización..."
 cp protocolos/tuning_elite.sh "$PROTO_DIR/tuning_elite.sh"
 cp protocolos/ssl_elite.sh "$PROTO_DIR/ssl_elite.sh"
 chmod +x "$PROTO_DIR/tuning_elite.sh"
 chmod +x "$PROTO_DIR/ssl_elite.sh"
 
-# 3. Crear accesos directos (Comando Secundario)
-echo "Configurando acceso secundario 'elite'..."
+# 3. Crear accesos directos
+echo "Configurando accesos directos ('menu', 'elite')..."
+echo "/etc/VPS-MX/menu" > /usr/bin/menu && chmod +x /usr/bin/menu
+echo "/etc/VPS-MX/menu" > /usr/bin/vps-mx && chmod +x /usr/bin/vps-mx
+echo "/etc/VPS-MX/menu" > /usr/bin/VPS-MX && chmod +x /usr/bin/VPS-MX
 echo "/etc/VPS-MX/menu_elite.sh --loop" > /usr/bin/elite && chmod +x /usr/bin/elite
 echo "/etc/VPS-MX/menu_elite.sh --loop" > /usr/bin/ELITE && chmod +x /usr/bin/ELITE
 
