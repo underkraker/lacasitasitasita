@@ -56,6 +56,16 @@ else
     echo "ADVERTENCIA: Files/VPS-MX.tar.xz no encontrado localmente."
 fi
 
+# Fix BadVPN (UDP 7300): Descargar binario robusto según arquitectura
+echo "Reparando BadVPN (UDP 7300)..."
+ARCH=$(uname -m)
+if [ "$ARCH" == "x86_64" ]; then
+    wget -O /usr/bin/badvpn-udpgw "https://github.com/yuliskov/badvpn-udpgw-binaries/raw/master/badvpn-udpgw-linux-x86_64" &>/dev/null
+elif [ "$ARCH" == "aarch64" ]; then
+    wget -O /usr/bin/badvpn-udpgw "https://github.com/yuliskov/badvpn-udpgw-binaries/raw/master/badvpn-udpgw-linux-arm64" &>/dev/null
+fi
+chmod +x /usr/bin/badvpn-udpgw
+
 # 4. Despliegue de Archivos Locales (Elite Layer)
 msg "Fase 4: Capa Elite y Parches"
 # Generar cache de IP
