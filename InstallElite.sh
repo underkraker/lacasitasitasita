@@ -1,7 +1,7 @@
 #!/bin/bash
-# FULL ELITE AUTOMATOR V4.1 (ULTIMATE SETUP) - VPS-MX MOD
+# FULL ELITE AUTOMATOR V4.2 (WEBSOCKET GATEWAY) - VPS-MX MOD
 # Autor: Antigravity AI Expert
-# Versión: 4.1 (Elite Master)
+# Versión: 4.2 (Elite Master)
 
 # Configuración Inicial
 export DEBIAN_FRONTEND=noninteractive
@@ -22,10 +22,10 @@ msg() {
 }
 
 clear
-echo -e "${RED}👑  INICIANDO FULL ELITE AUTOMATOR V4.1  👑${NC}"
-echo -e "${YELLOW}  Automatización Total y Reparación de BadVPN...${NC}"
+echo -e "${RED}👑  INICIANDO FULL ELITE AUTOMATOR V4.2  👑${NC}"
+echo -e "${YELLOW}  Configurando Elite WebSocket Gateway total...${NC}"
 
-# 0. Preparación del Sistema (DNS, Zona Horaria, Locks)
+# 0. Preparación
 msg "Fase 0: Preparación"
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
 echo "nameserver 1.0.0.1" >> /etc/resolv.conf
@@ -34,7 +34,7 @@ ln -s /usr/share/zoneinfo/America/Mexico_City /etc/localtime &>/dev/null
 rm /var/lib/dpkg/lock-frontend > /dev/null 2>&1
 rm /var/lib/apt/lists/lock > /dev/null 2>&1
 
-# 1. Instalación de Dependencias Core (Fix mlocate -> plocate)
+# 1. Instalación de Dependencias
 msg "Fase 1: Instalación de Dependencias"
 apt-get update -y
 apt-get install net-tools openssl stunnel4 grep gawk plocate lolcat at nano bc lsof figlet cowsay screen python3 python3-pip ufw unzip zip apache2 dropbear squid software-properties-common -y
@@ -70,7 +70,7 @@ chmod +x "$PROTO_DIR"/*.sh
 chmod +x "$PROTO_DIR"/*.py 2>/dev/null
 
 # 4. INSTALACIÓN AUTOMÁTICA DE PUERTOS (SILENT MODE)
-msg "Fase 4: Configuración de Puertos Automática"
+msg "Fase 4: Elitización de Puertos"
 
 # --- DROPBEAR (80, 109, 110) ---
 echo "Configurando Dropbear..."
@@ -79,29 +79,14 @@ sed -i 's/DROPBEAR_PORT=.*/DROPBEAR_PORT=80/g' /etc/default/dropbear
 sed -i 's/DROPBEAR_EXTRA_ARGS=.*/DROPBEAR_EXTRA_ARGS="-p 109 -p 110"/g' /etc/default/dropbear
 service dropbear restart &>/dev/null
 
-# --- STUNNEL4 / SSL (443) ---
-echo "Configurando Stunnel (SSL 443)..."
-CERT_FILE="/etc/stunnel/stunnel.pem"
-if [ ! -f "$CERT_FILE" ]; then
-    openssl genrsa -out key.pem 2048 >/dev/null 2>&1
-    openssl req -new -x509 -key key.pem -out cert.pem -days 1095 -subj "/C=MX/ST=Elite/L=Elite/O=Elite/CN=Elite" >/dev/null 2>&1
-    cat key.pem cert.pem > "$CERT_FILE"
-    rm key.pem cert.pem
-fi
-cat <<EOF > /etc/stunnel/stunnel.conf
-pid = /var/run/stunnel4.pid
-cert = /etc/stunnel/stunnel.pem
-client = no
-socket = a:SO_REUSEADDR=1
-socket = l:TCP_NODELAY=1
-socket = r:TCP_NODELAY=1
-sslVersion = TLSv1.3
-[ssh]
-accept = 443
-connect = 127.0.0.1:80
-EOF
-sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4
-service stunnel4 restart &>/dev/null
+# --- PROXY ELITE WEBSOCKET (8799) ---
+echo "Activando Elite WebSocket Gateway (Proxy:8799)..."
+pkill -f PPub.py &>/dev/null
+screen -dmS python_proxy python3 "$PROTO_DIR/PPub.py"
+
+# --- STUNNEL4 / SSL (443) -> Proxy (8799) ---
+echo "Configurando Stunnel Gateway (SSL:443 -> Proxy:8799)..."
+/bin/bash "$PROTO_DIR/ssl_elite.sh"
 
 # --- SQUID PROXY (8080) ---
 echo "Configurando Squid..."
@@ -112,7 +97,6 @@ acl SSL_ports port 443
 acl Safe_ports port 80
 acl Safe_ports port 443
 acl CONNECT method CONNECT
-http_access allow localhost
 http_access allow all
 http_port 3128
 http_port 8080
@@ -121,48 +105,19 @@ refresh_pattern . 0 20% 4320
 EOF
 service squid restart &>/dev/null
 
-# --- BADVPN FIX (UDP 7300) ---
-msg "Fase 5: Reparación Total de BadVPN"
+# --- BADVPN (7300) ---
 ARCH=$(uname -m)
-if [ "$ARCH" == "x86_64" ]; then
-    URL_BAD="https://github.com/yuliskov/badvpn-udpgw-binaries/raw/master/badvpn-udpgw-linux-x86_64"
-elif [ "$ARCH" == "aarch64" ]; then
-    URL_BAD="https://github.com/yuliskov/badvpn-udpgw-binaries/raw/master/badvpn-udpgw-linux-arm64"
-fi
+[[ "$ARCH" == "x86_64" ]] && URL_BAD="https://github.com/yuliskov/badvpn-udpgw-binaries/raw/master/badvpn-udpgw-linux-x86_64" || URL_BAD="https://github.com/yuliskov/badvpn-udpgw-binaries/raw/master/badvpn-udpgw-linux-arm64"
 wget -O /usr/bin/badvpn-udpgw "$URL_BAD" &>/dev/null
-wget -O /bin/badvpn-udpgw "$URL_BAD" &>/dev/null
 chmod +x /usr/bin/badvpn-udpgw
-chmod +x /bin/badvpn-udpgw
 screen -dmS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7300 --max-clients 1000
 
-# Parchear el script budp.sh original para que use nuestro binario y no de error
-cat <<EOF > "$PROTO_DIR/budp.sh"
-#!/bin/bash
-clear
-echo "————————————————————————————————————————————————————"
-echo "            ACTIVADOR DE BADVPN (UDP 7300)"
-echo "————————————————————————————————————————————————————"
-if pgrep -x "badvpn-udpgw" > /dev/null; then
-    echo "  BADVPN YA ESTÁ ACTIVO EN EL PUERTO 7300"
-else
-    screen -dmS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7300 --max-clients 1000
-    echo "  BADVPN ACTIVADO CON ÉXITO (PUERTO 7300)"
-fi
-echo "————————————————————————————————————————————————————"
-sleep 2s
-EOF
-chmod +x "$PROTO_DIR/budp.sh"
-
-# --- PROXY PYTHON 3 (8799) ---
-screen -dmS python_proxy python3 "$PROTO_DIR/PPub.py" 8799
-
-# 6. Vinculación Final
+# 5. Vinculación y Persistencia
 ln -sf /etc/VPS-MX/menu /usr/bin/menu
 ln -sf /etc/VPS-MX/menu /usr/bin/vps-mx
-ln -sf /etc/VPS-MX/menu_elite.sh /usr/bin/elite
 
 # Tuning Kernel
 /bin/bash "$PROTO_DIR/tuning_elite.sh"
 
-msg "¡INSTALACIÓN TOTAL V4.1 FINALIZADA!"
-echo -e " Todos los puertos están configurados y BadVPN reparado."
+msg "¡ACTUALIZACIÓN ELITE V4.2 COMPLETADA!"
+echo -e " El Gateway WebSocket está activo. Tu payload ahora conectará."
