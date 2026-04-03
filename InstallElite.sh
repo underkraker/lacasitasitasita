@@ -5,12 +5,15 @@
 
 # 0. Instalar dependencias necesarias
 echo "Verificando dependencias (net-tools, openssl)..."
-# Liberar posibles bloqueos de apt
-rm /var/lib/dpkg/lock-frontend > /dev/null 2>&1
-rm /var/lib/apt/lists/lock > /dev/null 2>&1
-
-DEBIAN_FRONTEND=noninteractive apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install net-tools openssl -y
+if ! command -v netstat &> /dev/null || ! command -v openssl &> /dev/null; then
+    echo "Instalando paquetes faltantes..."
+    rm /var/lib/dpkg/lock-frontend > /dev/null 2>&1
+    rm /var/lib/apt/lists/lock > /dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get update -y
+    DEBIAN_FRONTEND=noninteractive apt-get install net-tools openssl stunnel4 -y
+else
+    echo "Dependencias ya instaladas."
+fi
 
 # 1. Definir directorios
 BASE_DIR="/etc/VPS-MX"
