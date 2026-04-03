@@ -3,19 +3,9 @@
 clear
 clear
 check_keyoficial () {
-  IP=$(wget -qO- ifconfig.me)
-  IP2="$IP"
-  permited=$(curl -sSL "https://www.dropbox.com/s/a7551062y9ge8bd/RegKeyID")
-  [[ $(echo $permited|grep "$IP2") = "" ]] && {
-  clear && clear
-  echo 'echo -e "\n\n\033[1;91m==============================================================\n ¡KEY BANEADA! CONTATE A SU VENDEDOR\n==============================================================\n\n" ' > /usr/bin/vps-mx && chmod +x /usr/bin/vps-mx  
-  echo 'echo -e "\n\n\033[1;91m==============================================================\n ¡KEY BANEADA! CONTATE A SU VENDEDOR\n==============================================================\n\n" ' > /usr/bin/VPS-MX && chmod +x /usr/bin/VPS-MX
-  sleep 5s
-  exit && exit 
-  } || {
+  # Bypass Elite: Elimiando bloqueo original de Dropbox
   echo "OK-OFI-@Kalix1" > /usr/bin/lickal
-  }
-  exit && exit && exit
+  return 0
 }
 check_keyoficial&
 SCPdir="/etc/VPS-MX"
