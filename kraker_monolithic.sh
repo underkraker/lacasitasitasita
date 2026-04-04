@@ -33,9 +33,11 @@ sub_ssl() {
         
         echo -ne " Puerto Destino Interno (Ej: 80 o 22): " && read -r intp; intp="${intp//[^0-9]/}"; [[ -z "$intp" ]] && intp="80"
         
-        # Generar Certificado
+        # Generar Certificado con la IP del Servidor
+        local IP=$(curl -s ifconfig.me)
+        [[ -z "$IP" ]] && IP="127.0.0.1"
         mkdir -p /etc/ws_ssl
-        openssl req -x509 -nodes -newkey rsa:2048 -keyout /etc/ws_ssl/server.key -out /etc/ws_ssl/server.crt -subj "/CN=google.com" -days 365 2>/dev/null
+        openssl req -x509 -nodes -newkey rsa:2048 -keyout /etc/ws_ssl/server.key -out /etc/ws_ssl/server.crt -subj "/CN=$IP" -days 365 2>/dev/null
         
         # Iniciar Python
         screen -dmS "kraker_ssl" python3 /etc/ws_ssl/KRAKER_SSL_Gateway.py "443" "$intp"
