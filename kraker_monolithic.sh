@@ -14,20 +14,13 @@ menu_protocols() {
   while true; do
     clear
     k_msg -title "GESTIÓN DE PROTOCOLOS ELITE"
-    echo -e " [1] SSL STUNNEL\n [2] BADVPN UDP\n [3] DROPBEAR\n [0] VOLVER AL MENÚ PRINCIPAL"
+    echo -e " [1] Instalar / Iniciar SSL STUNNEL\n [2] Detener SSL STUNNEL\n [3] Instalar / Iniciar BADVPN UDP\n [4] Detener BADVPN UDP\n [0] VOLVER"
     k_msg -bar
-    echo -ne " ➤ Protocolo: " && read psel
-    psel=$(echo "$psel" | tr -d '\r') # Strip blind carriage returns
+    echo -ne " ➤ Opción: " && read psel
+    psel=$(echo "$psel" | tr -d '\r')
     case "$psel" in
       1|01) 
-        if pgrep -x stunnel4 >/dev/null || pgrep -x stunnel >/dev/null; then 
-          k_service stop stunnel4 >/dev/null 2>&1
-          k_service stop stunnel >/dev/null 2>&1
-          pkill -9 stunnel4 >/dev/null 2>&1
-          pkill -9 stunnel >/dev/null 2>&1
-          k_msg -ok "SSL DETENIDO"
-        else 
-        k_msg -info "Instalando dependencias SSL..."
+        k_msg -info "Iniciando instalación de SSL Stunnel..."
         apt-get install stunnel4 -y >/dev/null 2>&1
         echo -ne " Puerto SSL (443): " && read sslp; sslp=$(echo "$sslp" | tr -d '\r'); [[ -z "$sslp" ]] && sslp="443"
         mkdir -p /etc/stunnel
@@ -36,16 +29,27 @@ menu_protocols() {
         cat /etc/stunnel/stunnel.crt /etc/stunnel/stunnel.key > /etc/stunnel/stunnel.pem
         echo -e "cert = /etc/stunnel/stunnel.pem\nclient = no\n[SSL]\naccept = $sslp\nconnect = 127.0.0.1:22" > /etc/stunnel/stunnel.conf
         sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4 2>/dev/null
-        k_service restart stunnel4 && k_ufw "$sslp" && k_msg -ok "SSL ACTIVADO (Puerto: $sslp)"
-        fi
-        sleep 2 ;;
+        k_service restart stunnel4 && k_ufw "$sslp" && k_msg -ok "SSL ACTIVADO EXITOSAMENTE EN PUERTO $sslp"
+        sleep 3 ;;
       2|02)
-        if pgrep -f badvpn-udpgw >/dev/null; then pkill -9 -f badvpn-udpgw; k_msg -ok "UDP GATEWAY DETENIDO"; else
+        k_msg -warn "Deteniendo servicios SSL..."
+        systemctl stop stunnel4 >/dev/null 2>&1
+        systemctl stop stunnel >/dev/null 2>&1
+        pkill -9 stunnel4 >/dev/null 2>&1
+        pkill -9 stunnel >/dev/null 2>&1
+        k_msg -ok "SSL DETENIDO CORRECTAMENTE"
+        sleep 2 ;;
+      3|03)
         k_msg -info "Descargando binario y activando UDP..."
         wget -O /usr/bin/badvpn-udpgw https://github.com/itxtunnel/badvpn/raw/master/badvpn-udpgw >/dev/null 2>&1; chmod +x /usr/bin/badvpn-udpgw
+        pkill -9 -f badvpn-udpgw >/dev/null 2>&1
         screen -dmS bdvpn /usr/bin/badvpn-udpgw --listen-addr 0.0.0.0:7300 --max-clients 1000
-        k_ufw 7300; k_msg -ok "UDP ACTIVADO (Puerto: 7300)"
-        fi
+        k_ufw 7300; k_msg -ok "UDP ACTIVADO EN PUERTO 7300"
+        sleep 3 ;;
+      4|04)
+        k_msg -warn "Apagando BadVPN UDP Gateway..."
+        pkill -9 -f badvpn-udpgw >/dev/null 2>&1
+        k_msg -ok "UDP DETENIDO CORRECTAMENTE"
         sleep 2 ;;
       0|00) return ;;
       *) k_msg -err "Opción Inválida"; sleep 1 ;;
