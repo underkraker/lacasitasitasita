@@ -28,7 +28,17 @@ menu_protocols() {
         openssl genrsa -out /etc/stunnel/stunnel.key 2048 >/dev/null 2>&1
         (echo "BR"; echo "SP"; echo "SP"; echo "ADM"; echo "ADM"; echo "KRK"; echo "@elite") | openssl req -new -key /etc/stunnel/stunnel.key -x509 -days 3650 -out /etc/stunnel/stunnel.crt >/dev/null 2>&1
         cat /etc/stunnel/stunnel.crt /etc/stunnel/stunnel.key > /etc/stunnel/stunnel.pem
-        echo -e "cert = /etc/stunnel/stunnel.pem\nclient = no\n[SSL]\naccept = $sslp\nconnect = 127.0.0.1:$intp" > /etc/stunnel/stunnel.conf
+        cat <<EOF > /etc/stunnel/stunnel.conf
+cert = /etc/stunnel/stunnel.pem
+client = no
+socket = a:SO_REUSEADDR=1
+socket = l:TCP_NODELAY=1
+socket = r:TCP_NODELAY=1
+
+[stunnel]
+accept = $sslp
+connect = 127.0.0.1:$intp
+EOF
         sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4 2>/dev/null
         k_service restart stunnel4 && k_ufw "$sslp" && k_msg -ok "SSL ACTIVADO EXITOSAMENTE (EXT: $sslp -> INT: $intp)"
         sleep 3 ;;
