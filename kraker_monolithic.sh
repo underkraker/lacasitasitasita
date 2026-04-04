@@ -16,42 +16,37 @@ grep -q "/bin/false" /etc/shells || echo "/bin/false" >> /etc/shells
 sub_ssl() {
   while true; do
     clear
-    k_msg -title "ADMINISTRAR SSL STUNNEL"
-    echo -e " [1] Instalar / Iniciar SSL\n [2] Detener SSL\n [0] Atras"
+    k_msg -title "ADMINISTRAR SSL GATEWAY (WS+DIRECT)"
+    echo -e " [1] Iniciar GATEWAY DUAL (Puerto 443)\n [2] Detener GATEWAY\n [0] Atras"
     k_msg -bar
     echo -ne " ➤ Opción: " && read -r sub
     sub="${sub//[^0-9]/}"
     case "$sub" in
       1|01)
-        k_msg -info "Iniciando instalación de SSL Stunnel..."
-        apt-get install stunnel4 -y >/dev/null 2>&1
-        echo -ne " Puerto SSL Externo (Ej: 443): " && read -r sslp; sslp="${sslp//[^0-9]/}"; [[ -z "$sslp" ]] && sslp="443"
-        echo -ne " Puerto Destino Interno (Ej: 80 para Dropbear): " && read -r intp; intp="${intp//[^0-9]/}"; [[ -z "$intp" ]] && intp="80"
-        mkdir -p /etc/stunnel
-        openssl genrsa -out /etc/stunnel/stunnel.key 2048 >/dev/null 2>&1
-        (echo "BR"; echo "SP"; echo "SP"; echo "ADM"; echo "ADM"; echo "KRK"; echo "@elite") | openssl req -new -key /etc/stunnel/stunnel.key -x509 -days 3650 -out /etc/stunnel/stunnel.crt >/dev/null 2>&1
-        cat /etc/stunnel/stunnel.crt /etc/stunnel/stunnel.key > /etc/stunnel/stunnel.pem
-        cat <<EOF > /etc/stunnel/stunnel.conf
-pid = /var/run/stunnel.pid
-cert = /etc/stunnel/stunnel.pem
-client = no
-socket = l:TCP_NODELAY=1
-socket = r:TCP_NODELAY=1
-
-[SSL]
-accept = $sslp
-connect = 127.0.0.1:$intp
-EOF
-        sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4 2>/dev/null
-        k_service restart stunnel4 && k_ufw "$sslp" && k_msg -ok "SSL ACTIVADO (EXT: $sslp -> INT: $intp)"
+        k_msg -info "Iniciando instalación del Gateway SSL (Auto-SNI)..."
+        apt-get install screen openssl net-tools psmisc python3 -y >/dev/null 2>&1
+        
+        # Detener conflictos
+        systemctl stop apache2 nginx xray stunnel4 >/dev/null 2>&1
+        fuser -k 443/tcp >/dev/null 2>&1
+        sleep 1
+        
+        echo -ne " Puerto Destino Interno (Ej: 80 o 22): " && read -r intp; intp="${intp//[^0-9]/}"; [[ -z "$intp" ]] && intp="80"
+        
+        # Generar Certificado
+        mkdir -p /etc/ws_ssl
+        openssl req -x509 -nodes -newkey rsa:2048 -keyout /etc/ws_ssl/server.key -out /etc/ws_ssl/server.crt -subj "/CN=google.com" -days 365 2>/dev/null
+        
+        # Iniciar Python
+        screen -dmS "kraker_ssl" python3 /etc/ws_ssl/KRAKER_SSL_Gateway.py "443" "$intp"
+        
+        k_msg -ok "SSL WS+DIRECT GATEWAY ACTIVO (EXT: 443 -> INT: $intp)"
         sleep 3; return ;;
       2|02)
-        k_msg -warn "Deteniendo servicios SSL..."
-        systemctl stop stunnel4 >/dev/null 2>&1
-        systemctl stop stunnel >/dev/null 2>&1
-        pkill -9 stunnel4 >/dev/null 2>&1
-        pkill -9 stunnel >/dev/null 2>&1
-        k_msg -ok "SSL DETENIDO CORRECTAMENTE"
+        k_msg -warn "Deteniendo servicios SSL Gateway..."
+        screen -X -S "kraker_ssl" quit > /dev/null 2>&1
+        fuser -k 443/tcp > /dev/null 2>&1
+        k_msg -ok "SSL GATEWAY DETENIDO"
         sleep 2; return ;;
       0|00) return ;;
       *) k_msg -err "Opción Inválida"; sleep 1 ;;
