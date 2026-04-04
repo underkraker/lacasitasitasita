@@ -14,7 +14,7 @@ menu_protocols() {
   while true; do
     clear
     k_msg -title "GESTIÓN DE PROTOCOLOS ELITE"
-    echo -e " [1] Instalar / Iniciar SSL STUNNEL\n [2] Detener SSL STUNNEL\n [3] Instalar / Iniciar BADVPN UDP\n [4] Detener BADVPN UDP\n [0] VOLVER"
+    echo -e " [1] Instalar / Iniciar SSL STUNNEL\n [2] Detener SSL STUNNEL\n [3] Instalar / Iniciar BADVPN UDP\n [4] Detener BADVPN UDP\n [5] Instalar / Iniciar DROPBEAR\n [6] Detener DROPBEAR\n [0] VOLVER"
     k_msg -bar
     echo -ne " ➤ Opción: " && read -r psel
     psel="${psel//[^0-9]/}"
@@ -22,14 +22,15 @@ menu_protocols() {
       1|01) 
         k_msg -info "Iniciando instalación de SSL Stunnel..."
         apt-get install stunnel4 -y >/dev/null 2>&1
-        echo -ne " Puerto SSL (443): " && read sslp; sslp=$(echo "$sslp" | tr -d '\r'); [[ -z "$sslp" ]] && sslp="443"
+        echo -ne " Puerto SSL Externo (Ej: 443): " && read -r sslp; sslp="${sslp//[^0-9]/}"; [[ -z "$sslp" ]] && sslp="443"
+        echo -ne " Puerto Destino Interno (Ej: 80 para Dropbear): " && read -r intp; intp="${intp//[^0-9]/}"; [[ -z "$intp" ]] && intp="80"
         mkdir -p /etc/stunnel
         openssl genrsa -out /etc/stunnel/stunnel.key 2048 >/dev/null 2>&1
         (echo "BR"; echo "SP"; echo "SP"; echo "ADM"; echo "ADM"; echo "KRK"; echo "@elite") | openssl req -new -key /etc/stunnel/stunnel.key -x509 -days 3650 -out /etc/stunnel/stunnel.crt >/dev/null 2>&1
         cat /etc/stunnel/stunnel.crt /etc/stunnel/stunnel.key > /etc/stunnel/stunnel.pem
-        echo -e "cert = /etc/stunnel/stunnel.pem\nclient = no\n[SSL]\naccept = $sslp\nconnect = 127.0.0.1:22" > /etc/stunnel/stunnel.conf
+        echo -e "cert = /etc/stunnel/stunnel.pem\nclient = no\n[SSL]\naccept = $sslp\nconnect = 127.0.0.1:$intp" > /etc/stunnel/stunnel.conf
         sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4 2>/dev/null
-        k_service restart stunnel4 && k_ufw "$sslp" && k_msg -ok "SSL ACTIVADO EXITOSAMENTE EN PUERTO $sslp"
+        k_service restart stunnel4 && k_ufw "$sslp" && k_msg -ok "SSL ACTIVADO EXITOSAMENTE (EXT: $sslp -> INT: $intp)"
         sleep 3 ;;
       2|02)
         k_msg -warn "Deteniendo servicios SSL..."
@@ -50,6 +51,32 @@ menu_protocols() {
         k_msg -warn "Apagando BadVPN UDP Gateway..."
         pkill -9 -f badvpn-udpgw >/dev/null 2>&1
         k_msg -ok "UDP DETENIDO CORRECTAMENTE"
+        sleep 2 ;;
+      5|05)
+        k_msg -info "Instalando Dropbear..."
+        apt-get install dropbear -y >/dev/null 2>&1
+        echo -ne " Puertos (Ej: 80 443 22): " && read -r dpts
+        dpts=$(echo "$dpts" | tr -d '\r')
+        [[ -z "$dpts" ]] && dpts="80 22"
+        
+        # Security for SSH overrides if needed
+        sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null
+        
+        args=""
+        for p in $dpts; do args="$args -p $p"; k_ufw "$p"; done
+        
+        cat <<EOF > /etc/default/dropbear
+NO_START=0
+DROPBEAR_EXTRA_ARGS="$args"
+DROPBEAR_RECEIVE_WINDOW=65536
+EOF
+        k_service restart dropbear && k_msg -ok "DROPBEAR ACTIVADO EN PUERTOS: $dpts"
+        sleep 3 ;;
+      6|06)
+        k_msg -warn "Deteniendo Dropbear..."
+        k_service stop dropbear >/dev/null 2>&1
+        pkill -9 dropbear >/dev/null 2>&1
+        k_msg -ok "DROPBEAR DETENIDO"
         sleep 2 ;;
       0|00) return ;;
       *) k_msg -err "Opción Inválida"; sleep 1 ;;
