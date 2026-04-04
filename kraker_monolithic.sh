@@ -39,8 +39,8 @@ sub_ssl() {
         mkdir -p /etc/ws_ssl
         openssl req -x509 -nodes -newkey rsa:2048 -keyout /etc/ws_ssl/server.key -out /etc/ws_ssl/server.crt -subj "/CN=$IP" -days 365 2>/dev/null
         
-        # Iniciar Python
-        screen -dmS "kraker_ssl" python3 /etc/ws_ssl/KRAKER_SSL_Gateway.py "443" "$intp"
+        # Iniciar Python SSL Gateway Dual
+        screen -dmS "kraker_ssl" python3 /etc/ws_ssl/KRAKER_SSL_Gateway.py "443" "/etc/ws_ssl/server.crt" "/etc/ws_ssl/server.key" "127.0.0.1" "$intp"
         
         k_msg -ok "SSL WS+DIRECT GATEWAY ACTIVO (EXT: 443 -> INT: $intp)"
         sleep 3; return ;;
