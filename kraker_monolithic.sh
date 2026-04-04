@@ -16,8 +16,8 @@ menu_protocols() {
     k_msg -title "GESTIÓN DE PROTOCOLOS ELITE"
     echo -e " [1] Instalar / Iniciar SSL STUNNEL\n [2] Detener SSL STUNNEL\n [3] Instalar / Iniciar BADVPN UDP\n [4] Detener BADVPN UDP\n [0] VOLVER"
     k_msg -bar
-    echo -ne " ➤ Opción: " && read psel
-    psel=$(echo "$psel" | tr -d '\r')
+    echo -ne " ➤ Opción: " && read -r psel
+    psel="${psel//[^0-9]/}"
     case "$psel" in
       1|01) 
         k_msg -info "Iniciando instalación de SSL Stunnel..."
@@ -63,8 +63,8 @@ menu_users() {
     k_msg -title "ADMINISTRACIÓN DE USUARIOS"
     echo -e " [1] Crear Usuario Inteligente\n [2] Monitor de Conexiones en Vivo\n [0] VOLVER"
     k_msg -bar
-    echo -ne " ➤ Elija: " && read usel
-    usel=$(echo "$usel" | tr -d '\r')
+    echo -ne " ➤ Elija: " && read -r usel
+    usel="${usel//[^0-9]/}"
     case "$usel" in
       1|01) 
         echo -ne " Nuevo Usuario: " && read user; user=$(echo "$user" | tr -d '\r')
@@ -99,8 +99,8 @@ main_menu() {
     k_msg -bar
     echo -e " [1] Gestiön de Protocolos y Puertos\n [2] Administraciön de Usuarios y Accesos\n [3] Limpiar RAM y Optimizaciön\n [0] SALIR"
     k_msg -bar
-    echo -ne " ➤ Opciön: " && read sel
-    sel=$(echo "$sel" | tr -d '\r') # Evita saltos de línea destructivos
+    echo -ne " ➤ Opciön: " && read -r sel
+    sel="${sel//[^0-9]/}"
     
     case "$sel" in
       1|01) menu_protocols ;;
