@@ -96,11 +96,19 @@ kraker_list_ports() {
 kraker_service() {
   local action="$1" # start, stop, restart, status
   local service="$2"
-  if systemctl is-active --quiet "$service" || [[ "$action" == "start" ]]; then
-    systemctl "$action" "$service" >/dev/null 2>&1 || service "$service" "$action" >/dev/null 2>&1
-    return $?
-  fi
-  return 1
+  
+  # Limpiar nombre del servicio
+  service=$(echo "$service" | sed 's/\.service$//')
+  
+  case "$action" in
+    "start"|"restart"|"stop")
+      systemctl "$action" "$service" >/dev/null 2>&1 || service "$service" "$action" >/dev/null 2>&1
+      ;;
+    "status")
+      systemctl is-active --quiet "$service" || service "$service" status >/dev/null 2>&1
+      ;;
+  esac
+  return $?
 }
 
 # 8. Barra de Progreso Visual
@@ -120,6 +128,11 @@ kraker_bar() {
 kraker_ufw() {
   local port="$1"
   if command -v ufw >/dev/null; then
+    # Asegurar que el firewall esté activo (pero no bloquear SSH)
+    ufw status | grep -q "Status: active" || {
+      ufw allow 22/tcp >/dev/null 2>&1
+      echo "y" | ufw enable >/dev/null 2>&1
+    }
     ufw allow "$port" >/dev/null 2>&1
   fi
 }

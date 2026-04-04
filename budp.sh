@@ -1,30 +1,38 @@
-#!/bin/bash
-#19/12/2019
-declare -A cor=( [0]="\033[1;37m" [1]="\033[1;34m" [2]="\033[1;31m" [3]="\033[1;33m" [4]="\033[1;32m" )
-SCPfrm="/etc/ger-frm" && [[ ! -d ${SCPfrm} ]] && exit
-SCPinst="/etc/ger-inst" && [[ ! -d ${SCPinst} ]] && exit
+# Sourcing Core Library
+[[ -f /etc/newadm/kraker_core.sh ]] && source /etc/newadm/kraker_core.sh || source ./kraker_core.sh
+
 BadVPN () {
-pid_badvpn=$(ps x | grep badvpn | grep -v grep | awk '{print $1}')
-if [ "$pid_badvpn" = "" ]; then
-    msg -ama "                   ACTIVANDO BADVPN"
-    msg -bar 
+  local PID_BADVPN=$(pgrep -f "badvpn-udpgw")
+  
+  if [[ -z "$PID_BADVPN" ]]; then
+    kraker_msg -ama "ACTIVANDO BADVPN (UDP Gateway)..."
+    kraker_msg -bar 
+    
     if [[ ! -e /bin/badvpn-udpgw ]]; then
-    wget -O /bin/badvpn-udpgw https://raw.githubusercontent.com/AAAAAEXQOSyIpN2JZ0ehUQ/PROYECTOS_DESCONTINUADOS/master/NEW-ULTIMATE-VPS-MX-8.0/VPS-MX_Oficial/ArchivosUtilitarios/badvpn-udpgw &>/dev/null
-    chmod 777 /bin/badvpn-udpgw
+      kraker_msg -info "Descargando binario BadVPN..."
+      wget -O /bin/badvpn-udpgw https://raw.githubusercontent.com/underkraker/lacasitasitasita/master/badvpn-udpgw &>/dev/null
+      chmod +x /bin/badvpn-udpgw
     fi
-    screen -dmS badvpn2 /bin/badvpn-udpgw --listen-addr 127.0.0.1:7300 --max-clients 1000 --max-connections-for-client 10 
-    [[ "$(ps x | grep badvpn | grep -v grep | awk '{print $1}')" ]] && msg -verd "                  ACTIVADO CON EXITO" || msg -ama "                 Fallo"
-	msg -bar
-else
-    msg -ama "                DESACTIVANDO BADVPN"
-    msg -bar
-    kill -9 $(ps x | grep badvpn | grep -v grep | awk '{print $1'}) > /dev/null 2>&1
-    killall badvpn-udpgw > /dev/null 2>&1
-    [[ ! "$(ps x | grep badvpn | grep -v grep | awk '{print $1}')" ]] && msg -ne "                DESACTIVADO CON EXITO \n"
-    unset pid_badvpn
-	msg -bar
+    
+    # Iniciar en Screen (Escuchando en todas las interfaces: 0.0.0.0)
+    screen -dmS badvpn2 /bin/badvpn-udpgw --listen-addr 0.0.0.0:7300 --max-clients 1000 --max-connections-for-client 10 
+    sleep 1
+    
+    if pgrep -f "badvpn-udpgw" > /dev/null; then
+       kraker_ufw 7300
+       kraker_msg -verd "ACTIVADO CON ÉXITO EN PUERTO 7300"
+    else
+       kraker_msg -verm "ERROR: No se pudo iniciar BadVPN"
     fi
-unset pid_badvpn
+    kraker_msg -bar
+  else
+    kraker_msg -ama "DESACTIVANDO BADVPN..."
+    kraker_msg -bar
+    pkill -9 -f "badvpn-udpgw" > /dev/null 2>&1
+    ufw delete allow 7300 > /dev/null 2>&1
+    kraker_msg -verd "DESACTIVADO CON ÉXITO"
+    kraker_msg -bar
+  fi
 }
 
 BadVPN

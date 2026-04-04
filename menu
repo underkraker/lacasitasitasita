@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# PANEL VPS-MX | KRAKER VERSION REFACTORED
+# PANEL VPS-MX | KRAKER VERSION REFACTORED (v8.2.1u)
 # ==============================================================================
 # Sourcing Core Library
 [[ -f /etc/newadm/kraker_core.sh ]] && source /etc/newadm/kraker_core.sh || source ./kraker_core.sh

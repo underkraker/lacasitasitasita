@@ -6,14 +6,21 @@
 RED='\e[31m' && GREEN='\e[32m' && YELLOW='\e[33m' && NC='\e[0m'
 clear
 echo -e "${YELLOW}————————————————————————————————————————————————————"
-echo -e " | 🐲 REPARANDO GESTIÓN DE USUARIOS | Version 8.2u | "
+echo -e " | 🐲 REPARANDO GESTIÓN DE USUARIOS | Version 8.2.1u | "
 echo -e "————————————————————————————————————————————————————${NC}"
+
+# 1. Chequeo de ROOT
+[[ $UID -ne 0 ]] && echo -e "${RED}[!] Error: Debes ejecutar como root (usar sudo)${NC}" && exit 1
 
 # 2. Instalación de Dependencias
 echo -ne " Preparando dependencias... "
-sudo apt update &>/dev/null
-sudo apt install -y lsof psmisc net-tools curl git python3 ufw bc &>/dev/null
+apt-get update &>/dev/null
+apt-get install -y lsof psmisc net-tools curl git python3 ufw bc screen &>/dev/null
 echo -e "${GREEN}OK${NC}"
+
+# Activar Firewall si está desactivado (Crítico para que los puertos funcionen)
+ufw allow 22/tcp >/dev/null 2>&1
+ufw --force enable >/dev/null 2>&1
 
 # 3. Estructura de Carpetas Completa v8.2
 echo -ne " Configurando rutas de ger-user... "

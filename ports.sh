@@ -47,9 +47,9 @@ echo -e "${varline}" >> ${TMPCONF}
  fi
 done <<< "${NEWCONF}"
 mv -f ${TMPCONF} ${CONF}
+for PTS in `echo ${newports}`; do kraker_ufw "$PTS"; done
 msg -azu "$(fun_trans "AGUARDE")"
-service squid restart &>/dev/null
-service squid3 restart &>/dev/null
+kraker_service restart squid || kraker_service restart squid3
 sleep 1s
 msg -bar
 msg -azu "$(fun_trans "PUERTOS REDEFINIDOS")"
@@ -82,8 +82,9 @@ echo -e "${varline}" >> ${TMPCONF}
 fi
 done <<< "${NEWCONF}"
 mv -f ${TMPCONF} ${CONF}
+for PTS in `echo ${newports}`; do kraker_ufw "$PTS"; done
 msg -azu "$(fun_trans "AGUARDE")"
-service apache2 restart &>/dev/null
+kraker_service restart apache2
 sleep 1s
 msg -bar
 msg -azu "$(fun_trans "PUERTOS REDEFINIDOS")"
@@ -121,9 +122,9 @@ echo -e "${varline}" >> ${TMPCONF2}
 fi
 done <<< "${NEWCONF2}"
 mv -f ${TMPCONF2} ${CONF2}
+for PTS in `echo ${newports}`; do kraker_ufw "$PTS"; done
 msg -azu "$(fun_trans "AGUARDE")"
-service openvpn restart &>/dev/null
-/etc/init.d/openvpn restart &>/dev/null
+kraker_service restart openvpn
 sleep 1s
 msg -bar
 msg -azu "$(fun_trans "PUERTOS REDEFINIDOS")"
@@ -154,8 +155,9 @@ echo -e "${varline}" >> ${TMPCONF}
  fi
 done <<< "${NEWCONF}"
 mv -f ${TMPCONF} ${CONF}
+for PTS in `echo ${newports}`; do kraker_ufw "$PTS"; done
 msg -azu "$(fun_trans "AGUARDE")"
-service dropbear restart &>/dev/null
+kraker_service restart dropbear
 sleep 1s
 msg -bar
 msg -azu "$(fun_trans "PUERTOS REDEFINIDOS")"
@@ -182,9 +184,9 @@ while read varline; do
 echo -e "${varline}" >> ${TMPCONF}
 done <<< "${NEWCONF}"
 mv -f ${TMPCONF} ${CONF}
+for PTS in `echo ${newports}`; do kraker_ufw "$PTS"; done
 msg -azu "$(fun_trans "AGUARDE")"
-service ssh restart &>/dev/null
-service sshd restart &>/dev/null
+kraker_service restart ssh || kraker_service restart sshd
 sleep 1s
 msg -bar
 msg -azu "$(fun_trans "PUERTOS REDEFINIDOS")"
