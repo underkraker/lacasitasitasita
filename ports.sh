@@ -9,7 +9,7 @@ i=0
 while read port; do
 var1=$(echo $port | awk '{print $1}') && var2=$(echo $port | awk '{print $9}' | awk -F ":" '{print $2}')
 [[ "$(echo -e ${portas}|grep -w "$var1 $var2")" ]] || {
-    portas+="$var1 $var2 $portas"
+    portas+="$var1 $var2\n"
     echo "$var1 $var2"
     let i++
     }
@@ -37,15 +37,16 @@ echo -e "\033[1;33mPort $PTS \033[1;31mFAIL"
 return 1
 }
 done
-rm ${CONF}
+local TMPCONF=$(mktemp)
 while read varline; do
-echo -e "${varline}" >> ${CONF}
+echo -e "${varline}" >> ${TMPCONF}
  if [[ "${varline}" = "#portas" ]]; then
   for NPT in $(echo ${newports}); do
-  echo -e "http_port ${NPT}" >> ${CONF}
+  echo -e "http_port ${NPT}" >> ${TMPCONF}
   done
  fi
 done <<< "${NEWCONF}"
+mv -f ${TMPCONF} ${CONF}
 msg -azu "$(fun_trans "AGUARDE")"
 service squid restart &>/dev/null
 service squid3 restart &>/dev/null
@@ -67,19 +68,20 @@ echo -e "\033[1;33mPort $PTS \033[1;31mFAIL"
 return 1
 }
 done
-rm ${CONF}
+local TMPCONF=$(mktemp)
 while read varline; do
 if [[ $(echo ${varline}|grep -w "Listen") ]]; then
  if [[ -z ${END} ]]; then
- echo -e "Listen ${newports}" >> ${CONF}
+ echo -e "Listen ${newports}" >> ${TMPCONF}
  END="True"
  else
- echo -e "${varline}" >> ${CONF}
+ echo -e "${varline}" >> ${TMPCONF}
  fi
 else
-echo -e "${varline}" >> ${CONF}
+echo -e "${varline}" >> ${TMPCONF}
 fi
 done <<< "${NEWCONF}"
+mv -f ${TMPCONF} ${CONF}
 msg -azu "$(fun_trans "AGUARDE")"
 service apache2 restart &>/dev/null
 sleep 1s
@@ -102,21 +104,23 @@ echo -e "\033[1;33mPort $PTS \033[1;31mFAIL"
 return 1
 }
 done
-rm ${CONF}
+local TMPCONF=$(mktemp)
 while read varline; do
-echo -e "${varline}" >> ${CONF}
+echo -e "${varline}" >> ${TMPCONF}
 if [[ ${varline} = "proto tcp" ]]; then
-echo -e "port ${newports}" >> ${CONF}
+echo -e "port ${newports}" >> ${TMPCONF}
 fi
 done <<< "${NEWCONF}"
-rm ${CONF2}
+mv -f ${TMPCONF} ${CONF}
+local TMPCONF2=$(mktemp)
 while read varline; do
 if [[ $(echo ${varline}|grep -v "remote-random"|grep "remote") ]]; then
-echo -e "$(echo ${varline}|cut -d' ' -f1,2) ${newports} $(echo ${varline}|cut -d' ' -f4)" >> ${CONF2}
+echo -e "$(echo ${varline}|cut -d' ' -f1,2) ${newports} $(echo ${varline}|cut -d' ' -f4)" >> ${TMPCONF2}
 else
-echo -e "${varline}" >> ${CONF2}
+echo -e "${varline}" >> ${TMPCONF2}
 fi
 done <<< "${NEWCONF2}"
+mv -f ${TMPCONF2} ${CONF2}
 msg -azu "$(fun_trans "AGUARDE")"
 service openvpn restart &>/dev/null
 /etc/init.d/openvpn restart &>/dev/null
@@ -138,17 +142,18 @@ echo -e "\033[1;33mPort $PTS \033[1;31mFAIL"
 return 1
 }
 done
-rm ${CONF}
+local TMPCONF=$(mktemp)
 while read varline; do
-echo -e "${varline}" >> ${CONF}
+echo -e "${varline}" >> ${TMPCONF}
  if [[ ${varline} = "NO_START=0" ]]; then
- echo -e 'DROPBEAR_EXTRA_ARGS="VAR"' >> ${CONF}
+ echo -e 'DROPBEAR_EXTRA_ARGS="VAR"' >> ${TMPCONF}
  for NPT in $(echo ${newports}); do
- sed -i "s/VAR/-p ${NPT} VAR/g" ${CONF}
+ sed -i "s/VAR/-p ${NPT} VAR/g" ${TMPCONF}
  done
- sed -i "s/VAR//g" ${CONF}
+ sed -i "s/VAR//g" ${TMPCONF}
  fi
 done <<< "${NEWCONF}"
+mv -f ${TMPCONF} ${CONF}
 msg -azu "$(fun_trans "AGUARDE")"
 service dropbear restart &>/dev/null
 sleep 1s
@@ -169,13 +174,14 @@ echo -e "\033[1;33mPort $PTS \033[1;31mFAIL"
 return 1
 }
 done
-rm ${CONF}
+local TMPCONF=$(mktemp)
 for NPT in $(echo ${newports}); do
-echo -e "Port ${NPT}" >> ${CONF}
+echo -e "Port ${NPT}" >> ${TMPCONF}
 done
 while read varline; do
-echo -e "${varline}" >> ${CONF}
+echo -e "${varline}" >> ${TMPCONF}
 done <<< "${NEWCONF}"
+mv -f ${TMPCONF} ${CONF}
 msg -azu "$(fun_trans "AGUARDE")"
 service ssh restart &>/dev/null
 service sshd restart &>/dev/null

@@ -1,202 +1,78 @@
 #!/bin/bash
-#02/12/2020 by @Kalix1
-declare -A cor=( [0]="\033[1;37m" [1]="\033[1;34m" [2]="\033[1;31m" [3]="\033[1;33m" [4]="\033[1;32m" )
-SCPfrm="/etc/ger-frm" && [[ ! -d ${SCPfrm} ]] && exit
-SCPinst="/etc/ger-inst" && [[ ! -d ${SCPinst} ]] && exit
-mportas () {
-unset portas
-portas_var=$(ss -tunlp | grep LISTEN | grep -v 127.0.0.1 | awk '{split($5,a,":"); split($7,b,"\""); print b[2], a[length(a)]}' | sort -u)
-while read -r line; do [[ -z "$line" ]] || portas+="$line\n"; done <<< "$portas_var"
-echo -ne "$portas"
-}
-fun_ip () {
-MEU_IP=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -o -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
-MEU_IP2=$(wget -qO- ipv4.icanhazip.com)
-[[ "$MEU_IP" != "$MEU_IP2" ]] && IP="$MEU_IP2" || IP="$MEU_IP"
-}
-fun_eth () {
-eth=$(ifconfig | grep -v inet6 | grep -v lo | grep -v 127.0.0.1 | grep "encap:Ethernet" | awk '{print $1}')
-    [[ $eth != "" ]] && {
-    msg -bar
-    echo -e "${cor[3]} $(fun_trans  "Aplicar el sistema para mejorar los paquetes SSH?")"
-    echo -e "${cor[3]} $(fun_trans  "Opciones para usuarios avanzados")"
-    msg -bar
-    read -p " [S/N]: " -e -i n sshsn
-           [[ "$sshsn" = @(s|S|y|Y) ]] && {
-           echo -e "${cor[1]} $(fun_trans  "Corrección de problemas de paquetes en SSH...")"
-           echo -e " $(fun_trans  "¿Cual es la tasa RX?")"
-           echo -ne "[ 1 - 999999999 ]: "; read rx
-           [[ "$rx" = "" ]] && rx="999999999"
-           echo -e " $(fun_trans  "¿Cuál es la tarifa TX?")"
-           echo -ne "[ 1 - 999999999 ]: "; read tx
-           [[ "$tx" = "" ]] && tx="999999999"
-           apt-get install ethtool -y > /dev/null 2>&1
-           ethtool -G $eth rx $rx tx $tx > /dev/null 2>&1
-           }
-     msg -bar
-     }
-}
-fun_bar () {
-comando="$1"
- _=$(
-$comando > /dev/null 2>&1
-) & > /dev/null
-pid=$!
-while [[ -d /proc/$pid ]]; do
-echo -ne " \033[1;33m["
-   for((i=0; i<10; i++)); do
-   echo -ne "\033[1;31m##"
-   sleep 0.2
-   done
-echo -ne "\033[1;33m]"
-sleep 1s
-echo
-tput cuu1
-tput dl1
-done
-echo -e " \033[1;33m[\033[1;31m####################\033[1;33m] - \033[1;32m100%\033[0m"
-sleep 1s
-}
-ssl_stunel () {
-[[ $(pgrep -x stunnel4) ]] || [[ $(pgrep -x stunnel) ]] || [[ $(ss -tunlp | grep -qi "stunnel") ]] && {
-echo -e "\033[1;33m $(fun_trans "Parando Stunnel")"
-msg -bar
-# Obtener puerto de SSL para cerrar en firewall
-local p_off=$(cat /etc/stunnel/stunnel.conf | grep "accept =" | awk '{print $NF}')
-for p_kill in $p_off; do
-  ufw delete allow $p_kill > /dev/null 2>&1
-done
-systemctl stop stunnel4 > /dev/null 2>&1 || service stunnel4 stop > /dev/null 2>&1
-systemctl disable stunnel4 > /dev/null 2>&1
-pkill -9 stunnel4 > /dev/null 2>&1
-pkill -9 stunnel > /dev/null 2>&1
-killall -9 stunnel4 > /dev/null 2>&1
-fuser -k -n tcp $p_off > /dev/null 2>&1
-pkill -f python.py > /dev/null 2>&1
-msg -bar
-echo -e "\033[1;33m $(fun_trans "Detenido Con Exito!")"
-msg -bar
-return 0
-}
-echo -e "\033[1;32m $(fun_trans  "INSTALADOR SSL By MOD MX")"
-msg -bar
-echo -e "\033[1;33m $(fun_trans  "Seleccione una puerta de redirección interna.")"
-echo -e "\033[1;33m $(fun_trans  "Es decir, un puerto en su servidor para SSL")"
-msg -bar
-         while true; do
-         echo -ne "\033[1;37m"
-         read -p " Local-Port: " portx
-         if [[ ! -z $portx ]]; then
-             if [[ $(echo $portx|grep [0-9]) ]]; then
-                [[ $(mportas|grep $portx|head -1) ]] && break || echo -e "\033[1;31m $(fun_trans  "Puerta invalida")"
-             fi
-         fi
-         done
-msg -bar
-DPORT="$(mportas|grep $portx|awk '{print $2}'|head -1)"
-echo -e "\033[1;33m $(fun_trans  "Ahora Prestamos Saber Que Puerta del SSL, Va a Escuchar")"
-msg -bar
-    while true; do
-    read -p " Listen-SSL: " SSLPORT
-    [[ $(mportas|grep -w "$SSLPORT") ]] || break
-    echo -e "\033[1;33m $(fun_trans  "Esta puerta está en uso")"
-    unset SSLPORT
-    done
-msg -bar
-echo -e "\033[1;33m $(fun_trans  "Instalando SSL")"
-msg -bar
-fun_bar "apt-get install stunnel4 -y"
-echo -e "client = no\n[SSL]\ncert = /etc/stunnel/stunnel.pem\naccept = ${SSLPORT}\nconnect = 127.0.0.1:${DPORT}" > /etc/stunnel/stunnel.conf
-####Coreccion2.0##### 
-openssl genrsa -out stunnel.key 2048 > /dev/null 2>&1
+# ==============================================================================
+# SSL STUNNEL MANAGER - KRAKER REFACTORED
+# ==============================================================================
+[[ -f /etc/newadm/kraker_core.sh ]] && source /etc/newadm/kraker_core.sh || source ./kraker_core.sh
 
-(echo "mx" ; echo "mx" ; echo "mx" ; echo "mx" ; echo "mx" ; echo "mx" ; echo "@vpsmx" )|openssl req -new -key stunnel.key -x509 -days 1000 -out stunnel.crt > /dev/null 2>&1
+# Aliases para compatibilidad con código existente
+alias msg=kraker_msg
+alias fun_trans=kraker_trans
+alias mportas=kraker_list_ports
+alias fun_bar=kraker_bar
 
-cat stunnel.crt stunnel.key > stunnel.pem 
+ssl_stunel() {
+  # Verificar si ya está corriendo para detenerlo
+  if pgrep -x stunnel4 > /dev/null || ss -tunlp | grep -qi "stunnel"; then
+    kraker_msg -ama "Deteniendo Stunnel4..."
+    local p_off=$(grep "accept =" /etc/stunnel/stunnel.conf 2>/dev/null | awk '{print $NF}')
+    for p in $p_off; do ufw delete allow "$p" > /dev/null 2>&1; done
+    kraker_service stop stunnel4
+    pkill -9 stunnel4 > /dev/null 2>&1
+    kraker_msg -verd "Detenido con éxito!"
+    return 0
+  fi
 
-mv stunnel.pem /etc/stunnel/
-######-------
-sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4
-pkill -9 stunnel4 > /dev/null 2>&1
-systemctl daemon-reload > /dev/null 2>&1
-systemctl restart stunnel4 > /dev/null 2>&1 || service stunnel4 restart > /dev/null 2>&1
-ufw allow ${SSLPORT} > /dev/null 2>&1
-msg -bar
-echo -e "\033[1;33m $(fun_trans  "INSTALADO CON EXITO")"
-msg -bar
-rm -rf /etc/ger-frm/stunnel.crt > /dev/null 2>&1
-rm -rf /etc/ger-frm/stunnel.key > /dev/null 2>&1
-rm -rf /root/stunnel.crt > /dev/null 2>&1
-rm -rf /root/stunnel.key > /dev/null 2>&1
-return 0
+  kraker_msg -bar
+  kraker_msg -azu "INSTALADOR SSL - KRAKER CORE"
+  kraker_msg -bar
+  
+  # Selección de Puerto Local
+  while true; do
+    read -p " Puerto Local (Ej: 22, 80, 443): " portx
+    [[ $(mportas | grep -w "$portx") ]] && break || kraker_msg -verm "Puerto no activo en el sistema."
+  done
+  
+  DPORT=$(mportas | grep -w "$portx" | awk '{print $2}' | head -1)
+  
+  # Selección de Puerto SSL
+  while true; do
+    read -p " Puerto para SSL (Escucha): " SSLPORT
+    [[ $(mportas | grep -w "$SSLPORT") ]] && kraker_msg -verm "Puerto ya en uso." || break
+  done
+
+  kraker_msg -bar
+  kraker_msg -ama "Instalando Stunnel4..."
+  kraker_bar "apt-get install stunnel4 -y"
+
+  # Configuración Quirúrgica
+  echo -e "client = no\n[SSL]\ncert = /etc/stunnel/stunnel.pem\naccept = ${SSLPORT}\nconnect = 127.0.0.1:${DPORT}" > /etc/stunnel/stunnel.conf
+  
+  # Certificado Auto-Firmado Profesional
+  openssl genrsa -out stunnel.key 2048 > /dev/null 2>&1
+  (echo "MX"; echo "Kraker"; echo "Master"; echo "IT"; echo "Dev"; echo "SSL"; echo "@vpsmx") | openssl req -new -key stunnel.key -x509 -days 1000 -out stunnel.crt > /dev/null 2>&1
+  cat stunnel.crt stunnel.key > /etc/stunnel/stunnel.pem
+  rm stunnel.crt stunnel.key
+
+  sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4 2>/dev/null
+  kraker_service restart stunnel4
+  kraker_ufw "$SSLPORT"
+
+  kraker_msg -bar
+  kraker_msg -verd "SSL INSTALADO CON ÉXITO EN PUERTO $SSLPORT"
+  kraker_msg -bar
 }
-ssl_stunel_2 () {
-echo -e "\033[1;32m $(fun_trans  "INSTALADOR SSL By @Kalix1")"
-msg -bar
-echo -e "\033[1;33m $(fun_trans  "Seleccione una puerta de redirección interna.")"
-echo -e "\033[1;33m $(fun_trans  "Es decir, un puerto en su servidor para SSL")"
-msg -bar
-         while true; do
-         echo -ne "\033[1;37m"
-         read -p " Local-Port: " portx
-         if [[ ! -z $portx ]]; then
-             if [[ $(echo $portx|grep [0-9]) ]]; then
-                [[ $(mportas|grep $portx|head -1) ]] && break || echo -e "\033[1;31m $(fun_trans  "Puerta invalida")"
-             fi
-         fi
-         done
-msg -bar
-DPORT="$(mportas|grep $portx|awk '{print $2}'|head -1)"
-echo -e "\033[1;33m $(fun_trans  "Ahora Prestamos Saber Que Puerta del SSL, Va a Escuchar")"
-msg -bar
-    while true; do
-    read -p " Listen-SSL: " SSLPORT
-    [[ $(mportas|grep -w "$SSLPORT") ]] || break
-    echo -e "\033[1;33m $(fun_trans  "Esta puerta está en uso")"
-    unset SSLPORT
-    done
-msg -bar
-echo -e "\033[1;33m $(fun_trans  "Instalando SSL")"
-msg -bar
-fun_bar "apt-get install stunnel4 -y"
-echo -e "client = no\n[SSL+]\ncert = /etc/stunnel/stunnel.pem\naccept = ${SSLPORT}\nconnect = 127.0.0.1:${DPORT}" >> /etc/stunnel/stunnel.conf
-######-------
-sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4
-pkill -9 stunnel4 > /dev/null 2>&1
-systemctl daemon-reload > /dev/null 2>&1
-service stunnel4 restart > /dev/null 2>&1 || systemctl restart stunnel4 > /dev/null 2>&1
-ufw allow ${SSLPORT} > /dev/null 2>&1
-msg -bar
-echo -e "\033[1;33m $(fun_trans  "INSTALADO CON EXITO")"
-msg -bar
-rm -rf /etc/ger-frm/stunnel.crt > /dev/null 2>&1
-rm -rf /etc/ger-frm/stunnel.key > /dev/null 2>&1
-rm -rf /root/stunnel.crt > /dev/null 2>&1
-rm -rf /root/stunnel.key > /dev/null 2>&1
-return 0
-}
+
+# Menu de SSL
 clear
-msg -bar
-echo -e "${cor[3]}       INSTALADOR MONO Y MULTI SSL By @Kalix1"
-msg -bar
-echo -e "${cor[1]} Escoja la opcion deseada."
-msg -bar
-echo "1).- ININICIAR O PARAR SSL "
-echo "2).- AGREGAR PUERTOS SSL   "
-msg -bar
-echo -n "Digite solo el numero segun su respuesta: "
-read opcao
+kraker_msg -bar
+kraker_msg -azu "GESTOR SSL STUNNEL4 - REFACTORED"
+kraker_msg -bar
+echo -e " 1) INICIAR / DETENER SSL"
+echo -e " 2) SALIR"
+kraker_msg -bar
+read -p " Seleccione una opción: " opcao
+
 case $opcao in
-1)
-msg -bar
-ssl_stunel
-;;
-2)
-msg -bar
-echo -e "\033[1;93m  AGREGAR SSL EXTRA  ..."
-msg -bar
-ssl_stunel_2
-sleep 3
-exit
-;;
+  1) ssl_stunel ;;
+  *) exit ;;
 esac

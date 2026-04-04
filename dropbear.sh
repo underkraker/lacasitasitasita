@@ -1,210 +1,76 @@
 #!/bin/bash
-#19/12/2019
-declare -A cor=( [0]="\033[1;37m" [1]="\033[1;34m" [2]="\033[1;31m" [3]="\033[1;33m" [4]="\033[1;32m" )
-SCPfrm="/etc/ger-frm" && [[ ! -d ${SCPfrm} ]] && exit
-SCPinst="/etc/ger-inst" && [[ ! -d ${SCPinst} ]] && exit
-mportas () {
-unset portas
-portas_var=$(ss -tunlp | grep LISTEN | grep -v 127.0.0.1 | awk '{split($5,a,":"); split($7,b,"\""); print b[2], a[length(a)]}' | sort -u)
-while read -r line; do [[ -z "$line" ]] || portas+="$line\n"; done <<< "$portas_var"
-echo -ne "$portas"
-}
-fun_ip () {
-if [[ -e /etc/MEUIPADM ]]; then
-IP="$(cat /etc/MEUIPADM)"
-else
-MEU_IP=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -o -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
-MEU_IP2=$(wget -qO- ipv4.icanhazip.com)
-[[ "$MEU_IP" != "$MEU_IP2" ]] && IP="$MEU_IP2" || IP="$MEU_IP"
-echo "$MEU_IP2" > /etc/MEUIPADM
-fi
-}
-fun_eth () {
-eth=$(ifconfig | grep -v inet6 | grep -v lo | grep -v 127.0.0.1 | grep "encap:Ethernet" | awk '{print $1}')
-    [[ $eth != "" ]] && {
-    msg -bar
-    echo -e "${cor[3]} $(fun_trans "Aplicar Mejoras Para Mejorar Paquetes SSH?")"
-    echo -e "${cor[3]} $(fun_trans "Opcion Para Usuarios Avanzados")"
-    msg -bar
-    read -p " [S/N]: " -e -i n sshsn
-           [[ "$sshsn" = @(s|S|y|Y) ]] && {
-           echo -e "${cor[1]} $(fun_trans "Correccion de problemas de paquetes en SSH...")"
-           echo -e " $(fun_trans "Cual es la tasa RX")"
-           echo -ne "[ 1 - 999999999 ]: "; read rx
-           [[ "$rx" = "" ]] && rx="999999999"
-           echo -e " $(fun_trans "Cual es la tasa TX")"
-           echo -ne "[ 1 - 999999999 ]: "; read tx
-           [[ "$tx" = "" ]] && tx="999999999"
-           apt-get install ethtool -y > /dev/null 2>&1
-           ethtool -G $eth rx $rx tx $tx > /dev/null 2>&1
-           }
-     msg -bar
-     }
+# ==============================================================================
+# DROPBEAR MANAGER - KRAKER REFACTORED
+# ==============================================================================
+[[ -f /etc/newadm/kraker_core.sh ]] && source /etc/newadm/kraker_core.sh || source ./kraker_core.sh
+
+# Aliases para compatibilidad
+alias msg=kraker_msg
+alias fun_trans=kraker_trans
+alias mportas=kraker_list_ports
+alias fun_bar=kraker_bar
+
+fun_dropbear() {
+  # Desinstalar si existe
+  if [[ -f "/etc/default/dropbear" ]]; then
+    kraker_msg -ama "Removiendo Dropbear..."
+    local p_off=$(grep "DROPBEAR_EXTRA_ARGS" /etc/default/dropbear | grep -oE "[0-9]+")
+    for p in $p_off; do ufw delete allow "$p" > /dev/null 2>&1; done
+    kraker_service stop dropbear
+    pkill -9 dropbear > /dev/null 2>&1
+    kraker_bar "apt-get remove dropbear -y"
+    rm -f /etc/default/dropbear
+    kraker_msg -verd "Dropbear removido con éxito!"
+    return 0
+  fi
+
+  kraker_msg -bar
+  kraker_msg -azu "INSTALADOR DROPBEAR - KRAKER CORE"
+  kraker_msg -bar
+  
+  # Selección de Puertos
+  kraker_msg -info "Ejemplos de puertos: 22, 80, 443 (separados por espacios)"
+  read -p " Digite los puertos para Dropbear: " ports_raw
+  
+  local valid_ports=""
+  for p in $ports_raw; do
+    if [[ ! $(mportas | grep -w "$p") ]]; then
+      kraker_msg -info "Puerto $p: ${GREEN}OK${NC}"
+      valid_ports="$valid_ports $p"
+    else
+      kraker_msg -info "Puerto $p: ${RED}FALLO (En uso)${NC}"
+    fi
+  done
+
+  [[ -z $valid_ports ]] && { kraker_msg -verm "No se seleccionó ningún puerto válido."; return 1; }
+
+  kraker_msg -ama "Instalando Dropbear..."
+  kraker_bar "apt-get install dropbear -y"
+
+  # Configuración Quirúrgica de SSH (NO SOBREESCRIBIR)
+  kraker_msg -ama "Optimizando configuración de SSH..."
+  sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+  sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+  sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+  sed -i 's/^PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+  # Configuración de Dropbear
+  cat <<EOF > /etc/default/dropbear
+NO_START=0
+DROPBEAR_EXTRA_ARGS="$(for p in $valid_ports; do echo -n "-p $p "; done)"
+DROPBEAR_BANNER="/etc/dropbear/banner"
+DROPBEAR_RECEIVE_WINDOW=65536
+EOF
+
+  touch /etc/dropbear/banner
+  kraker_service restart ssh
+  kraker_service restart dropbear
+
+  for p in $valid_ports; do kraker_ufw "$p"; done
+
+  kraker_msg -bar
+  kraker_msg -verd "DROPBEAR INSTALADO EN: $valid_ports"
+  kraker_msg -bar
 }
 
-fun_bar () {
-comando="$1"
- _=$(
-$comando > /dev/null 2>&1
-) & > /dev/null
-pid=$!
-while [[ -d /proc/$pid ]]; do
-echo -ne " \033[1;33m["
-   for((i=0; i<10; i++)); do
-   echo -ne "\033[1;31m##"
-   sleep 0.2
-   done
-echo -ne "\033[1;33m]"
-sleep 1s
-echo
-tput cuu1 && tput dl1
-done
-echo -e " \033[1;33m[\033[1;31m####################\033[1;33m] - \033[1;32m100%\033[0m"
-sleep 1s
-}
-fun_dropbear () {
- [[ -e /etc/default/dropbear ]] && {
- echo -e "\033[1;32m $(fun_trans ${id} "REMOVIENDO DROPBEAR")"
- msg -bar
- # Cerrar puertos en firewall antes de borrar
- for p_off in $(cat /etc/default/dropbear | grep "DROPBEAR_EXTRA_ARGS" | grep -oE "[0-9]+"); do
-   ufw delete allow $p_off > /dev/null 2>&1
- done
- service dropbear stop > /dev/null 2>&1 || systemctl stop dropbear > /dev/null 2>&1
- pkill -9 dropbear > /dev/null 2>&1
- fun_bar "apt-get remove dropbear -y"
- msg -bar
- echo -e "\033[1;32m $(fun_trans "Dropbear Removido")"
- msg -bar
- [[ -e /etc/default/dropbear ]] && rm /etc/default/dropbear
- return 0
- }
-echo -e "\033[1;32m $(fun_trans "INSTALADOR DROPBEAR | VPS-MX By @Kalix1")"
-msg -bar
-echo -e "\033[1;31m $(fun_trans "Seleccione Puertos Validados en orden secuencial:")\033[1;32m 22 80 81 82 85 90\033[1;37m"
-msg -bar
-echo -ne "\033[1;31m $(fun_trans "Digite  Puertos"): \033[1;37m" && read DPORT
-tput cuu1 && tput dl1
-TTOTAL=($DPORT)
-    for((i=0; i<${#TTOTAL[@]}; i++)); do
-        [[ $(mportas|grep -w "${TTOTAL[$i]}") = "" ]] && {
-        echo -e "\033[1;33m $(fun_trans  "Puerto Elegido:")\033[1;32m ${TTOTAL[$i]} OK"
-        PORT="$PORT ${TTOTAL[$i]}"
-        } || {
-        echo -e "\033[1;33m $(fun_trans  "Puerto Elegido:")\033[1;31m ${TTOTAL[$i]} FAIL"
-        }
-   done
-  [[  -z $PORT ]] && {
-  echo -e "\033[1;31m $(fun_trans  "Ningun Puerto Valida Fue Elegido")\033[0m"
-  return 1
-  }
-sysvar=$(cat -n /etc/issue |grep 1 |cut -d' ' -f6,7,8 |sed 's/1//' |sed 's/      //' | grep -o Ubuntu)
-[[ ! $(cat /etc/shells|grep "/bin/false") ]] && echo -e "/bin/false" >> /etc/shells
-[[ "$sysvar" != "" ]] && {
-echo -e "Port 22
-Protocol 2
-KeyRegenerationInterval 3600
-ServerKeyBits 1024
-SyslogFacility AUTH
-LogLevel INFO
-LoginGraceTime 120
-PermitRootLogin yes
-StrictModes yes
-RSAAuthentication yes
-PubkeyAuthentication yes
-IgnoreRhosts yes
-RhostsRSAAuthentication no
-HostbasedAuthentication no
-PermitEmptyPasswords no
-ChallengeResponseAuthentication no
-PasswordAuthentication yes
-X11Forwarding yes
-X11DisplayOffset 10
-PrintMotd no
-PrintLastLog yes
-TCPKeepAlive yes
-#UseLogin no
-AcceptEnv LANG LC_*
-Subsystem sftp /usr/lib/openssh/sftp-server
-UsePAM yes" > /etc/ssh/sshd_config
-echo -e "${cor[2]} $(fun_trans ${id} "Instalando dropbear")"
-msg -bar
-fun_bar "apt-get install dropbear -y"
-msg -bar
-touch /etc/dropbear/banner
-echo -e "${cor[2]} $(fun_trans ${id} "Configurando dropbear")"
-cat <<EOF > /etc/default/dropbear
-NO_START=0
-DROPBEAR_EXTRA_ARGS="VAR"
-DROPBEAR_BANNER="/etc/dropbear/banner"
-DROPBEAR_RECEIVE_WINDOW=65536
-EOF
-for dpts in $(echo $PORT); do
-sed -i "s/VAR/-p $dpts VAR/g" /etc/default/dropbear
-done
-sed -i "s/VAR//g" /etc/default/dropbear
-} || {
-echo -e "Port 22
-Protocol 2
-KeyRegenerationInterval 3600
-ServerKeyBits 1024
-SyslogFacility AUTH
-LogLevel INFO
-LoginGraceTime 120
-PermitRootLogin yes
-StrictModes yes
-RSAAuthentication yes
-PubkeyAuthentication yes
-IgnoreRhosts yes
-RhostsRSAAuthentication no
-HostbasedAuthentication no
-PermitEmptyPasswords no
-ChallengeResponseAuthentication no
-PasswordAuthentication yes
-X11Forwarding yes
-X11DisplayOffset 10
-PrintMotd no
-PrintLastLog yes
-TCPKeepAlive yes
-#UseLogin no
-AcceptEnv LANG LC_*
-Subsystem sftp /usr/lib/openssh/sftp-server
-UsePAM yes" > /etc/ssh/sshd_config
-echo -e "${cor[2]} $(fun_trans  "Instalando dropbear")"
-msg -bar
-fun_bar "apt-get install dropbear -y"
-touch /etc/dropbear/banner
-msg -bar
-echo -e "${cor[2]} $(fun_trans  "Configurando dropbear")"
-cat <<EOF > /etc/default/dropbear
-NO_START=0
-DROPBEAR_EXTRA_ARGS="VAR"
-DROPBEAR_BANNER="/etc/dropbear/banner"
-DROPBEAR_RECEIVE_WINDOW=65536
-EOF
-for dpts in $(echo $PORT); do
-sed -i "s/VAR/-p $dpts VAR/g" /etc/default/dropbear
-done
-sed -i "s/VAR//g" /etc/default/dropbear
-}
-fun_eth
-# Liberar Puerto 80 (Apache/Nginx)
-systemctl stop apache2 &>/dev/null
-systemctl disable apache2 &>/dev/null
-systemctl stop nginx &>/dev/null
-systemctl disable nginx &>/dev/null
-pkill -9 dropbear > /dev/null 2>&1
-systemctl daemon-reload > /dev/null 2>&1
-service ssh restart > /dev/null 2>&1 || systemctl restart ssh > /dev/null 2>&1
-service dropbear restart > /dev/null 2>&1 || systemctl restart dropbear > /dev/null 2>&1
-for p_on in $PORT; do
-  ufw allow $p_on > /dev/null 2>&1
-done
-echo -e "${cor[3]} $(fun_trans "Su dropbear ha sido configurado con EXITO")"
-msg -bar
-#UFW
-for ufww in $(mportas|awk '{print $2}'); do
-ufw allow $ufww > /dev/null 2>&1
-done
-}
 fun_dropbear
