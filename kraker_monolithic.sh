@@ -9,6 +9,9 @@ k_service() { local action="$1"; local service="$2"; service=$(echo "$service" |
 k_ufw() { local port="$1"; ufw allow "$port" >/dev/null 2>&1; }
 k_get_os() { [[ -f /etc/os-release ]] && . /etc/os-release && echo "$NAME" || echo "Ubuntu"; }
 
+grep -q "/bin/false" /etc/shells || echo "/bin/false" >> /etc/shells
+
+
 # --- SUB-MENUS DE PROTOCOLOS ---
 sub_ssl() {
   while true; do
@@ -99,6 +102,10 @@ sub_dropbear() {
         dpts=$(echo "$dpts" | tr -d '\r')
         [[ -z "$dpts" ]] && dpts="80 22"
         sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null
+        
+        # Validar shell para conexiones Dropbear
+        grep -q "/bin/false" /etc/shells || echo "/bin/false" >> /etc/shells
+        
         args=""
         for p in $dpts; do args="$args -p $p"; k_ufw "$p"; done
         cat <<EOF > /etc/default/dropbear
