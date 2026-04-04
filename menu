@@ -11,7 +11,7 @@ k_msg -title "KRAKER ELITE COMMAND CENTER"
 # 1. Información del Sistema en una Línea Real-Time
 read r_total r_used r_free <<< $(free -h | awk '/Mem:/ {print $2, $3, $4}')
 cpu_load=$(top -bn1 | awk '/Cpu/ {print $2 + $4 "%"}')
-k_msg "-info" "RAM: ${GREEN}$r_used / $r_total${NC} | CPU: ${GREEN}$cpu_load${NC} | OS: ${CYAN}$(kraker_get_os)${NC}"
+k_msg "-info" "RAM: ${GREEN}$r_used / $r_total${NC} | CPU: ${GREEN}$cpu_load${NC} | OS: ${CYAN}$(k_get_os)${NC}"
 k_msg -bar
 
 # 2. Estado de Servicios Clave

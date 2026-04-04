@@ -78,11 +78,19 @@ k_ufw_rm() {
   ufw delete allow "$1" >/dev/null 2>&1
 }
 
-# 6. Monitoreo de Red (Journal-Based)
-k_net_monitor() {
-  local user="$1"
-  # Detección real mediante journalctl para Ubuntu Moderno
-  journalctl --since today | grep -iE "sshd.*Accepted|dropbear.*Password" | grep -w "$user" | wc -l
+# 7. Información del Servidor
+k_get_os() {
+  [[ -f /etc/os-release ]] && . /etc/os-release && echo "$NAME" || echo "Unknown"
 }
 
-export -f k_msg k_service k_ufw k_ufw_rm k_net_monitor
+k_get_ip() {
+  curl -s -4 icanhazip.com || echo "0.0.0.0"
+}
+
+# 8. Compatibilidad Legacy (Aliases)
+kraker_get_os() { k_get_os; }
+kraker_msg() { k_msg "$@"; }
+kraker_ufw() { k_ufw "$@"; }
+kraker_service() { k_service "$@"; }
+
+export -f k_msg k_service k_ufw k_ufw_rm k_net_monitor k_get_os k_get_ip kraker_get_os kraker_msg kraker_ufw kraker_service
