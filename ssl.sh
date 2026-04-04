@@ -4,7 +4,7 @@
 
 ssl_stunel() {
   # Detección Robusta (Procesos, Puertos o Systemd)
-  if pgrep -f stunnel > /dev/null || ss -tunlp | grep -qi "stunnel" || systemctl is-active --quiet stunnel4; then
+  if pgrep -x stunnel4 > /dev/null || ss -tunlp | grep -qi "stunnel"; then
     kraker_msg -ama "Deteniendo Stunnel..."
     
     # Cerrar puertos Firewall (Opcional pero recomendado)

@@ -10,7 +10,7 @@ BadVPN () {
     
     if [[ ! -e /bin/badvpn-udpgw ]]; then
       kraker_msg -info "Descargando binario BadVPN..."
-      wget -O /bin/badvpn-udpgw https://raw.githubusercontent.com/underkraker/lacasitasitasita/master/badvpn-udpgw &>/dev/null
+      wget -O /bin/badvpn-udpgw https://github.com/itxtunnel/badvpn/raw/master/badvpn-udpgw &>/dev/null
       chmod +x /bin/badvpn-udpgw
     fi
     
