@@ -29,13 +29,13 @@ menu_protocols() {
         (echo "BR"; echo "SP"; echo "SP"; echo "ADM"; echo "ADM"; echo "KRK"; echo "@elite") | openssl req -new -key /etc/stunnel/stunnel.key -x509 -days 3650 -out /etc/stunnel/stunnel.crt >/dev/null 2>&1
         cat /etc/stunnel/stunnel.crt /etc/stunnel/stunnel.key > /etc/stunnel/stunnel.pem
         cat <<EOF > /etc/stunnel/stunnel.conf
+pid = /var/run/stunnel.pid
 cert = /etc/stunnel/stunnel.pem
 client = no
-socket = a:SO_REUSEADDR=1
 socket = l:TCP_NODELAY=1
 socket = r:TCP_NODELAY=1
 
-[stunnel]
+[SSL]
 accept = $sslp
 connect = 127.0.0.1:$intp
 EOF
