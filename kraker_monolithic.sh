@@ -20,7 +20,13 @@ menu_protocols() {
     psel=$(echo "$psel" | tr -d '\r') # Strip blind carriage returns
     case "$psel" in
       1|01) 
-        if pgrep -x stunnel4 >/dev/null; then k_service stop stunnel4; k_msg -ok "SSL DETENIDO"; else 
+        if pgrep -x stunnel4 >/dev/null || pgrep -x stunnel >/dev/null; then 
+          k_service stop stunnel4 >/dev/null 2>&1
+          k_service stop stunnel >/dev/null 2>&1
+          pkill -9 stunnel4 >/dev/null 2>&1
+          pkill -9 stunnel >/dev/null 2>&1
+          k_msg -ok "SSL DETENIDO"
+        else 
         k_msg -info "Instalando dependencias SSL..."
         apt-get install stunnel4 -y >/dev/null 2>&1
         echo -ne " Puerto SSL (443): " && read sslp; sslp=$(echo "$sslp" | tr -d '\r'); [[ -z "$sslp" ]] && sslp="443"
