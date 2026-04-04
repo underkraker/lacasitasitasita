@@ -1,78 +1,62 @@
 #!/bin/bash
-# INSTALADOR MAESTRO VPS-MX (v8.2u - Edición Usuarios)
-# Repositorio: https://github.com/underkraker/lacasitasitasita
+# ==============================================================================
+# KRAKER ELITE INSTALLER (v2.0) - RECONSTRUCCIÓN TOTAL
+# ==============================================================================
 
-# 1. Colores y Banner
-RED='\e[31m' && GREEN='\e[32m' && YELLOW='\e[33m' && NC='\e[0m'
+# 1. Configuración de Entorno Elite
+RED='\e[38;5;196m' && GREEN='\e[38;5;46m' && YELLOW='\e[38;5;226m' && NC='\e[0m'
+export K_DIR="/etc/kraker"
 clear
+
 echo -e "${YELLOW}————————————————————————————————————————————————————"
-echo -e " | 🐲 REPARANDO GESTIÓN DE USUARIOS | Version 8.2.1u | "
+echo -e " | 🐲 INSTALADOR KRAKER ELITE | Version 2.0 | "
 echo -e "————————————————————————————————————————————————————${NC}"
 
-# 1. Chequeo de ROOT
-[[ $UID -ne 0 ]] && echo -e "${RED}[!] Error: Debes ejecutar como root (usar sudo)${NC}" && exit 1
+# Chequeo de Root
+[[ $UID -ne 0 ]] && echo -e "${RED}[!] Error: Ejecuta como root (sudo su)${NC}" && exit 1
 
-# 2. Instalación de Dependencias
-echo -ne " Preparando dependencias... "
+# 2. Limpieza de Versiones Antiguas
+echo -ne " Preparando sistema para la nueva versión Elite... "
+rm -rf /etc/newadm /etc/ger-inst /etc/ger-frm /etc/kraker
+mkdir -p "$K_DIR/protocols" "$K_DIR/users" "$K_DIR/logs"
+echo -e "${GREEN}OK${NC}"
+
+# 3. Instalación de Dependencias Críticas
+echo -ne " Instalando dependencias del sistema... "
 apt-get update &>/dev/null
-apt-get install -y lsof psmisc net-tools curl git python3 ufw bc screen &>/dev/null
+apt-get install -y lsof psmisc net-tools curl git python3 ufw bc screen stunnel4 zip unzip &>/dev/null
 echo -e "${GREEN}OK${NC}"
 
-# Activar Firewall si está desactivado (Crítico para que los puertos funcionen)
-ufw allow 22/tcp >/dev/null 2>&1
-ufw --force enable >/dev/null 2>&1
-
-# 3. Estructura de Carpetas Completa v8.2
-echo -ne " Configurando rutas de ger-user... "
-rm -rf /etc/newadm /etc/ger-inst /etc/ger-frm
-mkdir -p /etc/newadm/ger-user
-mkdir -p /etc/ger-inst
-mkdir -p /etc/ger-frm
+# 4. Clonación de Repositorio Elite
+echo -ne " Descargando archivos maestros Elite... "
+cd $HOME; rm -rf lacasitasitasita
+git clone https://github.com/underkraker/lacasitasitasita &>/dev/null
+cd lacasitasitasita
 echo -e "${GREEN}OK${NC}"
 
-# 4. Clonación y Distribución
-echo -ne " Sincronizando archivos de gestión... "
-# Si estamos en entorno local de desarrollo, copiar directamente
-if [[ -f "./kraker_core.sh" ]]; then
-  cp menu /etc/newadm/menu
-  cp kraker_core.sh /etc/newadm/kraker_core.sh
-  cp message.txt /etc/newadm/message.txt &>/dev/null
-  cp usercodes /etc/newadm/ger-user/usercodes &>/dev/null
-  cp ssl.sh dropbear.sh v2ray.sh openvpn.sh shadowsocks.sh squid.sh budp.sh /etc/ger-inst/ &>/dev/null
-  cp ports.sh gestor.sh tcp.sh blockBT.sh fai2ban.sh utils.sh paysnd.sh ultrahost speed.sh /etc/ger-frm/ &>/dev/null
-  cp *.py /etc/newadm/ &>/dev/null
-else
-  cd $HOME; rm -rf lacasitasitasita
-  git clone https://github.com/underkraker/lacasitasitasita &>/dev/null
-  cd lacasitasitasita
-  cp menu /etc/newadm/menu
-  cp kraker_core.sh /etc/newadm/kraker_core.sh
-  cp message.txt /etc/newadm/message.txt &>/dev/null
-  cp usercodes /etc/newadm/ger-user/usercodes &>/dev/null
-  cp ssl.sh dropbear.sh v2ray.sh openvpn.sh shadowsocks.sh squid.sh budp.sh /etc/ger-inst/ &>/dev/null
-  cp ports.sh gestor.sh tcp.sh blockBT.sh fai2ban.sh utils.sh paysnd.sh ultrahost speed.sh /etc/ger-frm/ &>/dev/null
-  cp *.py /etc/newadm/ &>/dev/null
-fi
+# 5. Distribución Modular
+echo -ne " Sincronizando módulos de gestión... "
+cp kraker_core.sh "$K_DIR/core.sh"
+cp menu "$K_DIR/menu"
+cp protocols.sh "$K_DIR/protocols.sh"
+cp usercodes "$K_DIR/usercodes" # Proximo: Refactorizar como user_manager.sh
+# Mover archivos extra
+cp message.txt "$K_DIR/message.txt" &>/dev/null
+chmod +x "$K_DIR"/*
 echo -e "${GREEN}OK${NC}"
 
-# 5. Permisos y Enlaces
-echo -ne " Finalizando permisos... "
-chmod +x /etc/newadm/menu
-chmod +x /etc/newadm/kraker_core.sh
-chmod +x /etc/newadm/ger-user/usercodes
-chmod +x /etc/ger-inst/*.sh
-chmod +x /etc/ger-frm/*.sh
-chmod +x /etc/ger-frm/*
-
-ln -sf /etc/newadm/menu /usr/bin/menu
-ln -sf /etc/newadm/menu /usr/bin/vps-mx
+# 6. Finalización y Enlaces Elite
+echo -ne " Configurando enlaces de comando... "
+ln -sf "$K_DIR/menu" /usr/bin/menu
+ln -sf "$K_DIR/menu" /usr/bin/kraker
+ln -sf "$K_DIR/menu" /usr/bin/vps-mx
 echo -e "${GREEN}OK${NC}"
 
 clear
 echo -e "${GREEN}————————————————————————————————————————————————————"
-echo -e "       KRAKER MASTER - REFACTORIZACIÓN EXITOSA      "
-echo -e "————————————————————————————————————————————————————${NC}"
-echo -e " Escriba ${YELLOW}'menu'${NC} para entrar al panel."
-echo -e " El sistema ahora es 100% Modular y Seguro."
+echo -e "      ${BOLD}KRAKER ELITE INSTALADO EXITOSAMENTE${NC}"
 echo -e "————————————————————————————————————————————————————"
-
+echo -e " Escribe ${YELLOW}'kraker'${NC} o ${YELLOW}'menu'${NC} para entrar al panel."
+echo -e "————————————————————————————————————————————————————"
+echo -e " [!] Recomendado: Reinicia tu sesión SSH para aplicar cambios."
+echo -e "————————————————————————————————————————————————————"
